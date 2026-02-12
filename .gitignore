@@ -5,3 +5,9 @@ crash.log
 *.tfvars
 .terraform.lock.hcl
 .env
+
+# Lambda build artifacts
+*.zip
+
+# OS
+.DS_Store

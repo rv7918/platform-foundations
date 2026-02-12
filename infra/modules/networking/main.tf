@@ -98,3 +98,17 @@ resource "aws_route_table_association" "private_b" {
   subnet_id      = aws_subnet.private_b.id
   route_table_id = aws_route_table.private.id
 }
+
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id       = aws_vpc.this.id
+  service_name = "com.amazonaws.eu-west-1.s3"
+  vpc_endpoint_type = "Gateway"
+
+  route_table_ids = [
+    aws_route_table.private.id
+  ]
+
+  tags = {
+    Name = "pf-s3-endpoint-dev"
+  }
+}
