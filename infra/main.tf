@@ -13,3 +13,7 @@ module "platform" {
   private_subnet_ids = module.networking.private_subnet_ids
   lambda_sg_id       = module.security.lambda_sg_id
 }
+
+output "api_endpoint" {
+  value = module.platform.api_endpoint
+}
