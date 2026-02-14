@@ -112,3 +112,17 @@ resource "aws_vpc_endpoint" "s3" {
     Name = "pf-s3-endpoint-dev"
   }
 }
+
+resource "aws_vpc_endpoint" "dynamodb" {
+  vpc_id            = aws_vpc.this.id
+  service_name      = "com.amazonaws.eu-west-1.dynamodb"
+  vpc_endpoint_type = "Gateway"
+
+  route_table_ids = [
+    aws_route_table.private.id
+  ]
+
+  tags = {
+    Name = "pf-dynamodb-endpoint-dev"
+  }
+}

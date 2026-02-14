@@ -75,3 +75,38 @@ resource "aws_apigatewayv2_stage" "default" {
   auto_deploy = true
 }
 
+resource "aws_dynamodb_table" "items" {
+  name         = "pf-items-dev"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+
+  tags = {
+    Name = "pf-items-dev"
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_dynamodb" {
+  name = "pf-lambda-dynamodb-dev"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:Scan"
+        ]
+        Resource = aws_dynamodb_table.items.arn
+      }
+    ]
+  })
+}
+
