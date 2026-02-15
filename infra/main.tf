@@ -1,5 +1,6 @@
 module "networking" {
-  source = "./modules/networking"
+  source       = "./modules/networking"
+  lambda_sg_id = module.security.lambda_sg_id
 }
 
 module "security" {

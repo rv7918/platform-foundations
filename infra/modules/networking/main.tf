@@ -126,3 +126,51 @@ resource "aws_vpc_endpoint" "dynamodb" {
     Name = "pf-dynamodb-endpoint-dev"
   }
 }
+
+resource "aws_vpc_endpoint" "sqs" {
+  vpc_id            = aws_vpc.this.id
+  service_name      = "com.amazonaws.eu-west-1.sqs"
+  vpc_endpoint_type = "Interface"
+
+  subnet_ids = [
+    aws_subnet.private_a.id,
+    aws_subnet.private_b.id
+  ]
+
+  security_group_ids = [
+    aws_security_group.vpce_sg.id
+  ]
+
+  private_dns_enabled = true
+
+  tags = {
+    Name = "pf-sqs-endpoint-dev"
+  }
+}
+
+resource "aws_security_group" "vpce_sg" {
+  name        = "pf-vpce-sg-dev"
+  description = "Security group for VPC endpoints"
+  vpc_id      = aws_vpc.this.id
+
+  ingress {
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [var.lambda_sg_id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "pf-vpce-sg-dev"
+  }
+}
+
+
+
