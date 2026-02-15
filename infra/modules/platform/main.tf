@@ -38,6 +38,12 @@ resource "aws_lambda_function" "this" {
     security_group_ids = [var.lambda_sg_id]
   }
 
+  environment {
+    variables = {
+      QUEUE_URL = aws_sqs_queue.items_queue.id
+    }
+  }
+
   tags = {
     Name = "pf-lambda-dev"
   }
@@ -142,6 +148,84 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
     ]
   })
 }
+
+resource "aws_sqs_queue" "items_queue" {
+  name                      = "pf-items-queue-dev"
+  visibility_timeout_seconds = 30
+
+  tags = {
+    Name = "pf-items-queue-dev"
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_sqs_send" {
+  name = "pf-lambda-sqs-send-dev"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage"
+        ]
+        Resource = aws_sqs_queue.items_queue.arn
+      }
+    ]
+  })
+}
+
+resource "aws_lambda_function" "worker" {
+  function_name = "pf-worker-dev"
+  role          = aws_iam_role.lambda_role.arn
+  handler       = "worker.handler"
+  runtime       = "nodejs16.x"
+
+  filename         = "${path.module}/worker.zip"
+  source_code_hash = filebase64sha256("${path.module}/worker.zip")
+
+  vpc_config {
+    subnet_ids         = var.private_subnet_ids
+    security_group_ids = [var.lambda_sg_id]
+  }
+
+  tags = {
+    Name = "pf-worker-dev"
+  }
+}
+
+resource "aws_lambda_event_source_mapping" "sqs_trigger" {
+  event_source_arn = aws_sqs_queue.items_queue.arn
+  function_name    = aws_lambda_function.worker.arn
+  batch_size       = 1
+}
+
+resource "aws_iam_role_policy" "lambda_sqs_consume" {
+  name = "pf-lambda-sqs-consume-dev"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = aws_sqs_queue.items_queue.arn
+      }
+    ]
+  })
+}
+
+
+
+
+
+
 
 
 
