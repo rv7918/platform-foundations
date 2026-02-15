@@ -28,7 +28,7 @@ resource "aws_lambda_function" "this" {
   function_name = "pf-lambda-dev"
   role          = aws_iam_role.lambda_role.arn
   handler       = "index.handler"
-  runtime       = "nodejs18.x"
+  runtime       = "nodejs16.x"
 
   filename         = "${path.module}/lambda.zip"
   source_code_hash = filebase64sha256("${path.module}/lambda.zip")
@@ -66,13 +66,46 @@ resource "aws_apigatewayv2_integration" "lambda" {
 resource "aws_apigatewayv2_route" "root" {
   api_id    = aws_apigatewayv2_api.http_api.id
   route_key = "GET /"
-  target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+
+  target = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.jwt.id
 }
 
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.http_api.id
   name        = "$default"
   auto_deploy = true
+}
+
+resource "aws_cognito_user_pool" "this" {
+  name = "pf-user-pool-dev"
+}
+
+resource "aws_cognito_user_pool_client" "this" {
+  name         = "pf-user-pool-client-dev"
+  user_pool_id = aws_cognito_user_pool.this.id
+
+  generate_secret = false
+
+  explicit_auth_flows = [
+    "ALLOW_USER_PASSWORD_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH"
+  ]
+}
+
+resource "aws_apigatewayv2_authorizer" "jwt" {
+  api_id          = aws_apigatewayv2_api.http_api.id
+  name            = "pf-jwt-authorizer-dev"
+  authorizer_type = "JWT"
+
+  identity_sources = ["$request.header.Authorization"]
+
+  jwt_configuration {
+    audience = [aws_cognito_user_pool_client.this.id]
+    issuer   = "https://cognito-idp.eu-west-1.amazonaws.com/${aws_cognito_user_pool.this.id}"
+  }
 }
 
 resource "aws_dynamodb_table" "items" {
@@ -109,4 +142,6 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
     ]
   })
 }
+
+
 
