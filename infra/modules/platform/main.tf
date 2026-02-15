@@ -28,7 +28,7 @@ resource "aws_lambda_function" "this" {
   function_name = "pf-lambda-dev"
   role          = aws_iam_role.lambda_role.arn
   handler       = "index.handler"
-  runtime       = "nodejs18.x"
+  runtime       = "nodejs16.x"
 
   filename         = "${path.module}/lambda.zip"
   source_code_hash = filebase64sha256("${path.module}/lambda.zip")
@@ -107,5 +107,41 @@ resource "aws_apigatewayv2_authorizer" "jwt" {
     issuer   = "https://cognito-idp.eu-west-1.amazonaws.com/${aws_cognito_user_pool.this.id}"
   }
 }
+
+resource "aws_dynamodb_table" "items" {
+  name         = "pf-items-dev"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+
+  tags = {
+    Name = "pf-items-dev"
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_dynamodb" {
+  name = "pf-lambda-dynamodb-dev"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:Scan"
+        ]
+        Resource = aws_dynamodb_table.items.arn
+      }
+    ]
+  })
+}
+
 
 
