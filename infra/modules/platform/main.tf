@@ -150,8 +150,13 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
 }
 
 resource "aws_sqs_queue" "items_queue" {
-  name                      = "pf-items-queue-dev"
+  name                       = "pf-items-queue-dev"
   visibility_timeout_seconds = 30
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.items_dlq.arn
+    maxReceiveCount     = 3
+  })
 
   tags = {
     Name = "pf-items-queue-dev"
@@ -221,6 +226,13 @@ resource "aws_iam_role_policy" "lambda_sqs_consume" {
   })
 }
 
+resource "aws_sqs_queue" "items_dlq" {
+  name = "pf-items-dlq-dev"
+
+  tags = {
+    Name = "pf-items-dlq-dev"
+  }
+}
 
 
 
